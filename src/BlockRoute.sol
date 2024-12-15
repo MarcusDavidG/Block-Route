@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "./interfaces/IBlockRoute.sol";
 import "./libraries/BlockRouteLib.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract BlockRoute is IBlockRoute, AccessControl, Pausable, ReentrancyGuard {
     using BlockRouteLib for *;
@@ -334,5 +334,54 @@ contract BlockRoute is IBlockRoute, AccessControl, Pausable, ReentrancyGuard {
 
     function assignDisputeResolverRole(address account) external onlyRole(ADMIN_ROLE) {
         grantRole(DISPUTE_RESOLVER_ROLE, account);
+    }
+
+    // Missing functions from IBlockRoute
+    function assignRole(
+        uint256 shipmentId,
+        address account,
+        Role role
+    ) external whenNotPaused nonReentrant validShipment(shipmentId) {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can assign roles");
+        require(account != address(0), "Invalid address");
+        require(role != Role.None, "Invalid role");
+
+        Shipment storage shipment = _shipments[shipmentId];
+        require(shipment.participantRoles[account] == Role.None, "Role already assigned");
+
+        shipment.participantRoles[account] = role;
+        _userShipments[account].push(shipmentId);
+
+        emit RoleAssigned(account, role, shipmentId);
+    }
+
+    function revokeRole(
+        uint256 shipmentId,
+        address account
+    ) external whenNotPaused nonReentrant validShipment(shipmentId) {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can revoke roles");
+        require(account != address(0), "Invalid address");
+
+        Shipment storage shipment = _shipments[shipmentId];
+        require(shipment.participantRoles[account] != Role.None, "No role assigned");
+
+        // Store the role before removing it (for the event)
+        Role previousRole = shipment.participantRoles[account];
+        
+        // Remove role
+        shipment.participantRoles[account] = Role.None;
+
+        // Remove shipment from user's list
+        uint256[] storage userShipments = _userShipments[account];
+        for (uint256 i = 0; i < userShipments.length; i++) {
+            if (userShipments[i] == shipmentId) {
+                // Replace with the last element and pop
+                userShipments[i] = userShipments[userShipments.length - 1];
+                userShipments.pop();
+                break;
+            }
+        }
+
+        emit RoleAssigned(account, Role.None, shipmentId);
     }
 }
