@@ -1,0 +1,125 @@
+/* Map container styles */
+.mapboxgl-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Custom marker styles */
+.marker {
+  cursor: pointer;
+}
+
+/* Pulse animation for current location marker */
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: .8;
+    transform: scale(1.1);
+  }
+}
+
+/* Custom popup styles */
+.mapboxgl-popup {
+  max-width: 200px;
+}
+
+.mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 0.5rem;
+  background-color: #1f2937; /* dark gray-800 */
+  color: white;
+  border: 1px solid #374151; /* gray-700 */
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: #1f2937 !important;
+  border-bottom-color: #1f2937 !important;
+}
+
+.mapboxgl-popup-close-button {
+  color: white;
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background-color: #374151; /* gray-700 */
+  border-top-right-radius: 0.5rem;
+}
+
+/* Route line animation */
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Map controls theme */
+.mapboxgl-ctrl-group {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+.mapboxgl-ctrl button {
+  background-color: #1f2937 !important;
+  color: white !important;
+}
+
+.mapboxgl-ctrl button:hover {
+  background-color: #374151 !important;
+}
+
+.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Map attribution theme */
+.mapboxgl-ctrl-attrib {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+  color: white !important;
+}
+
+.mapboxgl-ctrl-attrib a {
+  color: #f97316 !important; /* orange-500 */
+}
+
+/* Loading state */
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  background-color: rgba(31, 41, 55, 0.9);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-loading::after {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #f97316;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
