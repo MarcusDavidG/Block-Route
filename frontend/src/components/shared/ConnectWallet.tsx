@@ -1,4 +1,5 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
 
 interface ConnectWalletProps {
   className?: string
@@ -7,62 +8,37 @@ interface ConnectWalletProps {
 
 export function ConnectWallet({ className = '', fullScreen = false }: ConnectWalletProps) {
   const { address, isConnecting } = useAccount()
-  const { connect, connectors, error } = useConnect()
+  const { connect } = useConnect({
+    connector: new MetaMaskConnector()
+  })
   const { disconnect } = useDisconnect()
 
-  const handleConnect = async (connectorId: string) => {
-    const connector = connectors.find(c => c.id === connectorId)
-    if (connector) {
-      connect({ connector })
+  const handleClick = () => {
+    if (address) {
+      disconnect()
+    } else {
+      connect()
     }
   }
 
   const content = (
-    <div className="text-center p-8 rounded-lg">
-      <h2 className="text-2xl font-bold text-orange-400 mb-4">Wallet Connection</h2>
-      
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
-          {error.message}
-        </div>
+    <div className="text-center p-8">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        {address ? 'Wallet Connected' : 'Connect Your Wallet'}
+      </h2>
+      {address && (
+        <p className="text-gray-600 dark:text-gray-400 mb-6 font-mono">
+          {`${address.slice(0, 6)}...${address.slice(-4)}`}
+        </p>
       )}
-
-      {address ? (
-        <div>
-          <p className="text-gray-400 mb-2">Connected with:</p>
-          <p className="font-mono text-sm text-gray-400 mb-4">
-            {`${address.slice(0, 6)}...${address.slice(-4)}`}
-          </p>
-          <button 
-            onClick={() => disconnect()}
-            className={`bg-orange-500 px-6 py-3 rounded text-white font-bold 
-                     hover:bg-orange-600 transition-colors ${className}`}
-          >
-            Disconnect
-          </button>
-        </div>
-      ) : (
-        <div>
-          <p className="text-gray-400 mb-6">
-            Please connect your wallet to continue
-          </p>
-          <div className="space-y-3">
-            {connectors.map((connector) => (
-              <button
-                key={connector.id}
-                onClick={() => handleConnect(connector.id)}
-                disabled={!connector.ready || isConnecting}
-                className={`w-full bg-orange-500 px-6 py-3 rounded text-white font-bold 
-                         hover:bg-orange-600 disabled:bg-gray-400 transition-colors ${className}`}
-              >
-                {isConnecting
-                  ? 'Connecting...'
-                  : `Connect with ${connector.name}`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <button
+        onClick={handleClick}
+        disabled={isConnecting}
+        className={`bg-orange-500 text-white px-6 py-3 rounded font-bold 
+                   hover:bg-orange-600 disabled:bg-gray-400 transition-colors ${className}`}
+      >
+        {isConnecting ? 'Connecting...' : address ? 'Disconnect' : 'Connect Wallet'}
+      </button>
     </div>
   )
 
@@ -79,18 +55,16 @@ export function ConnectWallet({ className = '', fullScreen = false }: ConnectWal
 
 export function WalletButton() {
   const { address, isConnecting } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { connect } = useConnect({
+    connector: new MetaMaskConnector()
+  })
   const { disconnect } = useDisconnect()
 
   const handleClick = () => {
     if (address) {
       disconnect()
     } else {
-      // Default to first available connector (usually injected/MetaMask)
-      const connector = connectors[0]
-      if (connector) {
-        connect({ connector })
-      }
+      connect()
     }
   }
 
@@ -98,15 +72,16 @@ export function WalletButton() {
     <button
       onClick={handleClick}
       disabled={isConnecting}
-      className="bg-orange-500 px-4 py-2 rounded hover:bg-orange-600 
-                disabled:bg-gray-400 transition-colors"
+      className="bg-orange-500 text-white px-4 py-2 rounded font-bold 
+                 hover:bg-orange-600 disabled:bg-gray-400 transition-colors"
     >
-      {isConnecting
-        ? 'Connecting...'
-        : address
-          ? `${address.slice(0, 6)}...${address.slice(-4)}`
-          : 'Connect Wallet'
-      }
+      {isConnecting ? (
+        'Connecting...'
+      ) : address ? (
+        `${address.slice(0, 6)}...${address.slice(-4)}`
+      ) : (
+        'Connect Wallet'
+      )}
     </button>
   )
 }

@@ -1,139 +1,82 @@
-import { useRef, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
+import { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { useBlockRoute } from '../../hooks/useBlockRoute'
-import { MAPBOX_ACCESS_TOKEN, defaultMapConfig, addRouteLayer, createMarkerElement } from '../../config/mapbox'
-import { MapLoading, MapError, MapNoData } from '../../components/shared/MapLoading'
 import { WalletButton } from '../../components/shared/ConnectWallet'
+import { ShipmentStatus } from '../../config/contracts'
+import { MapLoading, MapError, MapNoData } from '../../components/shared/MapLoading'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-// Set Mapbox access token
-mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+// Custom marker icons
+const originIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
 
-interface ShipmentLocation {
-  coordinates: [number, number]
-  name: string
-  timestamp: string
+const destinationIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+// Map bounds adjuster component
+function MapBounds({ coordinates }: { coordinates: [number, number][] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (coordinates.length > 0) {
+      const bounds = L.latLngBounds(coordinates.map(coord => L.latLng(coord[0], coord[1])))
+      map.fitBounds(bounds, { padding: [50, 50] })
+
+      // Draw the route line
+      const routeLine = L.polyline(coordinates, {
+        color: '#f97316', // orange-500
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '10, 10' // Creates a dashed line
+      }).addTo(map)
+
+      return () => {
+        map.removeLayer(routeLine)
+      }
+    }
+  }, [coordinates, map])
+
+  return null
 }
 
 export default function TrackShipment() {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
-  const { address } = useBlockRoute()
   const [shipmentId, setShipmentId] = useState('')
   const [isTracking, setIsTracking] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { address, useShipment, useTransitHistory } = useBlockRoute()
 
-  // Mock shipment data - will be replaced with blockchain data
-  const mockShipmentData = {
-    id: '123456',
-    origin: {
-      coordinates: [-97.7419, 30.2672],
-      name: '2972 Westheimer',
-      timestamp: '2024-01-15 08:00 AM'
-    } as ShipmentLocation,
-    current: {
-      coordinates: [-97.7031, 30.2813],
-      name: 'In Transit',
-      timestamp: '2024-01-15 02:30 PM'
-    } as ShipmentLocation,
-    destination: {
-      coordinates: [-97.6754, 30.2964],
-      name: '8502 Preston',
-      timestamp: '2024-01-15 05:00 PM'
-    } as ShipmentLocation,
-    status: 'In Transit',
-    estimatedArrival: '2024-01-15 05:00 PM'
-  }
+  // Get shipment data
+  const { 
+    data: shipment,
+    isLoading: isLoadingShipment,
+    error: shipmentError 
+  } = useShipment(isTracking ? BigInt(shipmentId) : 0n)
 
-  const initializeMap = async () => {
-    if (!mapContainerRef.current) return
+  // Get transit history
+  const {
+    isLoading: isLoadingHistory,
+    error: historyError
+  } = useTransitHistory(isTracking ? BigInt(shipmentId) : 0n)
 
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        ...defaultMapConfig,
-        center: mockShipmentData.current.coordinates,
-      })
-
-      mapRef.current = map
-
-      // Wait for map to load
-      await new Promise((resolve) => map.on('load', resolve))
-
-      // Add route line
-      const coordinates = [
-        mockShipmentData.origin.coordinates,
-        mockShipmentData.current.coordinates,
-        mockShipmentData.destination.coordinates,
-      ]
-      
-      addRouteLayer(map, coordinates)
-
-      // Add markers
-      new mapboxgl.Marker({ element: createMarkerElement('start') })
-        .setLngLat(mockShipmentData.origin.coordinates)
-        .setPopup(new mapboxgl.Popup().setHTML(`
-          <div class="p-2">
-            <h3 class="font-bold">Origin</h3>
-            <p>${mockShipmentData.origin.name}</p>
-            <p class="text-sm text-gray-500">${mockShipmentData.origin.timestamp}</p>
-          </div>
-        `))
-        .addTo(map)
-
-      new mapboxgl.Marker({ element: createMarkerElement('current') })
-        .setLngLat(mockShipmentData.current.coordinates)
-        .setPopup(new mapboxgl.Popup().setHTML(`
-          <div class="p-2">
-            <h3 class="font-bold">Current Location</h3>
-            <p>${mockShipmentData.current.name}</p>
-            <p class="text-sm text-gray-500">${mockShipmentData.current.timestamp}</p>
-          </div>
-        `))
-        .addTo(map)
-
-      new mapboxgl.Marker({ element: createMarkerElement('end') })
-        .setLngLat(mockShipmentData.destination.coordinates)
-        .setPopup(new mapboxgl.Popup().setHTML(`
-          <div class="p-2">
-            <h3 class="font-bold">Destination</h3>
-            <p>${mockShipmentData.destination.name}</p>
-            <p class="text-sm text-gray-500">ETA: ${mockShipmentData.estimatedArrival}</p>
-          </div>
-        `))
-        .addTo(map)
-
-      // Fit map to show all markers
-      const bounds = new mapboxgl.LngLatBounds()
-        .extend(mockShipmentData.origin.coordinates)
-        .extend(mockShipmentData.current.coordinates)
-        .extend(mockShipmentData.destination.coordinates)
-
-      map.fitBounds(bounds, { padding: 50 })
-      setIsLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load map')
-      setIsLoading(false)
-    }
-  }
-
-  const handleTrackShipment = async (e: React.FormEvent) => {
+  const handleTrackShipment = (e: React.FormEvent) => {
     e.preventDefault()
     setIsTracking(true)
-    // Here we would fetch the shipment data from the blockchain
-    // For now, we'll just initialize the map with mock data
-    await initializeMap()
   }
 
   const handleReset = () => {
     setIsTracking(false)
-    setError(null)
-    if (mapRef.current) {
-      mapRef.current.remove()
-    }
   }
 
   if (!address) {
@@ -161,6 +104,13 @@ export default function TrackShipment() {
               <h1 className="text-2xl font-bold text-orange-400 mb-6 text-center">
                 Track Your Shipment
               </h1>
+
+              {(shipmentError || historyError) && (
+                <div className="mb-6 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded">
+                  Error: {shipmentError?.message || historyError?.message}
+                </div>
+              )}
+
               <form onSubmit={handleTrackShipment} className="space-y-6">
                 <div>
                   <label htmlFor="shipmentId" className="block text-sm font-medium mb-2">
@@ -181,7 +131,7 @@ export default function TrackShipment() {
                 <button
                   type="submit"
                   className="w-full bg-orange-500 text-white p-3 rounded font-bold 
-                           hover:bg-orange-600 transition-colors"
+                           hover:bg-orange-600 transition-colors disabled:bg-gray-400"
                 >
                   Track Shipment
                 </button>
@@ -195,8 +145,17 @@ export default function TrackShipment() {
           <div className="bg-gray-100 dark:bg-gray-800 p-4">
             <div className="container mx-auto flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-bold">Shipment #{mockShipmentData.id}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Status: {mockShipmentData.status}</p>
+                <h2 className="text-lg font-bold">Shipment #{shipmentId}</h2>
+                {shipment && (
+                  <>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Status: {ShipmentStatus[shipment.status]}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Product: {shipment.productName}
+                    </p>
+                  </>
+                )}
               </div>
               <button
                 onClick={handleReset}
@@ -209,10 +168,67 @@ export default function TrackShipment() {
 
           {/* Map Container */}
           <div className="flex-grow relative">
-            <div ref={mapContainerRef} className="absolute inset-0" />
-            {isLoading && <MapLoading />}
-            {error && <MapError message={error} />}
-            {!isLoading && !error && !mockShipmentData && <MapNoData />}
+            <div className="absolute inset-0">
+              {shipment && (
+                <MapContainer
+                  key={`map-${shipmentId}`}
+                  className="h-full w-full"
+                  center={[0, 0]}
+                  zoom={2}
+                  scrollWheelZoom={true}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                  {/* Origin Marker */}
+                  <Marker 
+                    position={[
+                      parseFloat(shipment.origin.latitude),
+                      parseFloat(shipment.origin.longitude)
+                    ]}
+                    icon={originIcon}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold">Origin</h3>
+                        <p>{shipment.origin.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(Number(shipment.origin.timestamp)).toLocaleString()}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+
+                  {/* Destination Marker */}
+                  <Marker 
+                    position={[
+                      parseFloat(shipment.destination.latitude),
+                      parseFloat(shipment.destination.longitude)
+                    ]}
+                    icon={destinationIcon}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold">Destination</h3>
+                        <p>{shipment.destination.name}</p>
+                        <p className="text-sm text-gray-500">
+                          ETA: {new Date(Number(shipment.estimatedDeliveryDate)).toLocaleString()}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+
+                  {/* Map bounds adjuster and route line */}
+                  <MapBounds coordinates={[
+                    [parseFloat(shipment.origin.latitude), parseFloat(shipment.origin.longitude)],
+                    [parseFloat(shipment.destination.latitude), parseFloat(shipment.destination.longitude)]
+                  ]} />
+                </MapContainer>
+              )}
+            </div>
+            {(isLoadingShipment || isLoadingHistory) && <MapLoading />}
+            {shipmentError && <MapError message={shipmentError.message} />}
+            {historyError && <MapError message={historyError.message} />}
+            {!isLoadingShipment && !shipment && <MapNoData />}
           </div>
         </div>
       )}

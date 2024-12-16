@@ -118,24 +118,7 @@ export function Home() {
           Track every step of your shipment's journey with BlockRoute, offering a seamless 
           and transparent view of your package's route from start to finish.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-          <div className="p-4 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer transition-colors">
-            <span className="text-2xl">🚛</span>
-            <h3 className="font-bold mt-2">Road Freight</h3>
-          </div>
-          <div className="p-4 bg-orange-500 rounded hover:bg-orange-600 cursor-pointer transition-colors">
-            <span className="text-2xl">✈️</span>
-            <h3 className="font-bold mt-2">Ground Shipping</h3>
-          </div>
-          <div className="p-4 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer transition-colors">
-            <span className="text-2xl">🚂</span>
-            <h3 className="font-bold mt-2">Railway Freight</h3>
-          </div>
-          <div className="p-4 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer transition-colors">
-            <span className="text-2xl">🚢</span>
-            <h3 className="font-bold mt-2">Sea Freight</h3>
-          </div>
-        </div>
+        
       </section>
     </div>
   )

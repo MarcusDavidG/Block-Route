@@ -1,32 +1,14 @@
-import type { Map, AnyLayer } from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl'
 
-// Replace with your actual Mapbox access token
-export const MAPBOX_ACCESS_TOKEN = 'YOUR_MAPBOX_ACCESS_TOKEN';
+export const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibWFyY3VzZGF2aWRnIiwiYSI6ImNscnlxZGVtZjBhbmQya3BnZGJxZGJwbGsifQ.Hs7jAZPHGBHG5K_Qw_qPrw'
 
 export const defaultMapConfig = {
-  style: 'mapbox://styles/mapbox/dark-v11', // Dark theme for our dark mode design
-  zoom: 11,
-  pitch: 45, // Add some 3D perspective
-  bearing: 0,
-  antialias: true
-};
+  style: 'mapbox://styles/mapbox/dark-v11',
+  zoom: 12,
+  attributionControl: false,
+} as const
 
-export const getRouteLayer = (): AnyLayer => ({
-  id: 'route',
-  type: 'line',
-  source: 'route',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round'
-  },
-  paint: {
-    'line-color': '#f97316',
-    'line-width': 6,
-    'line-opacity': 0.8
-  }
-});
-
-export const addRouteLayer = (map: Map, coordinates: [number, number][]) => {
+export function addRouteLayer(map: mapboxgl.Map, coordinates: [number, number][]) {
   // Add the route source
   map.addSource('route', {
     type: 'geojson',
@@ -35,49 +17,44 @@ export const addRouteLayer = (map: Map, coordinates: [number, number][]) => {
       properties: {},
       geometry: {
         type: 'LineString',
-        coordinates
-      }
-    }
-  });
+        coordinates,
+      },
+    },
+  })
 
-  // Add the route layer
-  map.addLayer(getRouteLayer());
-};
+  // Add the route line layer
+  map.addLayer({
+    id: 'route',
+    type: 'line',
+    source: 'route',
+    layout: {
+      'line-join': 'round',
+      'line-cap': 'round',
+    },
+    paint: {
+      'line-color': '#f97316', // orange-500
+      'line-width': 4,
+      'line-opacity': 0.8,
+    },
+  })
+}
 
-export const createMarkerElement = (type: 'start' | 'current' | 'end') => {
-  const element = document.createElement('div');
-  element.className = 'marker';
-  
-  // Customize marker based on type
-  switch (type) {
-    case 'start':
-      element.innerHTML = `
-        <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-      `;
-      break;
-    case 'current':
-      element.innerHTML = `
-        <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white pulse">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-          </svg>
-        </div>
-      `;
-      break;
-    case 'end':
-      element.innerHTML = `
-        <div class="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center text-white">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-          </svg>
-        </div>
-      `;
-      break;
+export function createMarkerElement(type: 'start' | 'current' | 'end'): HTMLElement {
+  const colors = {
+    start: '#22c55e', // green-500
+    current: '#f97316', // orange-500
+    end: '#ef4444', // red-500
   }
-  
-  return element;
-};
+
+  const el = document.createElement('div')
+  el.className = 'marker'
+  el.style.width = '24px'
+  el.style.height = '24px'
+  el.style.borderRadius = '50%'
+  el.style.backgroundColor = colors[type]
+  el.style.border = '3px solid white'
+  el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
+  el.style.cursor = 'pointer'
+
+  return el
+}

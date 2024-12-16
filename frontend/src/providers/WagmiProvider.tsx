@@ -1,8 +1,9 @@
-import { WagmiConfig } from 'wagmi'
+import { WagmiConfig, createConfig, configureChains } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createConfig, http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
-import { injected, metaMask } from 'wagmi/connectors'
+import { publicProvider } from 'wagmi/providers/public'
+import { InjectedConnector } from 'wagmi/connectors/injected'
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
 
 // Custom Lisk Sepolia chain configuration
 const liskSepolia = {
@@ -29,18 +30,51 @@ const liskSepolia = {
       url: 'https://sepolia-blockscout.lisk.com',
     },
   },
+  contracts: {
+    multicall3: {
+      address: '0xca11bde05977b3631167028862be2a173976ca11',
+      blockCreated: 1,
+    },
+  },
+  testnet: true,
 } as const
 
-const queryClient = new QueryClient()
+// Configure chains and providers
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [liskSepolia],
+  [publicProvider()]
+)
 
+// Create wagmi config
 const config = createConfig({
-  chains: [liskSepolia],
+  autoConnect: true,
   connectors: [
-    injected(),
-    metaMask()
+    new InjectedConnector({ 
+      chains,
+      options: {
+        name: 'Injected',
+        shimDisconnect: true,
+      },
+    }),
+    new MetaMaskConnector({ 
+      chains,
+      options: {
+        shimDisconnect: true,
+      },
+    }),
   ],
-  transports: {
-    [liskSepolia.id]: http(),
+  publicClient,
+  webSocketPublicClient,
+})
+
+// Create react-query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+      staleTime: 30_000,
+    },
   },
 })
 

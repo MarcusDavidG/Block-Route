@@ -1,14 +1,43 @@
 import { useState } from 'react'
 import { useBlockRoute } from '../../hooks/useBlockRoute'
 import { WalletButton } from '../../components/shared/ConnectWallet'
+import { useNavigate } from 'react-router-dom'
+
+interface LocationInput {
+  name: string
+  latitude: string
+  longitude: string
+}
+
+interface FormData {
+  productName: string
+  description: string
+  origin: LocationInput
+  destination: LocationInput
+  deliveredOn: string
+  arrivesOn: string
+  isTemperatureSensitive: boolean
+  isHumiditySensitive: boolean
+}
 
 export default function CreateShipment() {
-  const { address } = useBlockRoute()
-  const [formData, setFormData] = useState({
+  const navigate = useNavigate()
+  const { address, useCreateShipment } = useBlockRoute()
+  const { write, isLoading, isSuccess, error } = useCreateShipment()
+
+  const [formData, setFormData] = useState<FormData>({
     productName: '',
     description: '',
-    shippedFrom: '',
-    destination: '',
+    origin: {
+      name: '',
+      latitude: '',
+      longitude: ''
+    },
+    destination: {
+      name: '',
+      latitude: '',
+      longitude: ''
+    },
     deliveredOn: '',
     arrivesOn: '',
     isTemperatureSensitive: false,
@@ -17,16 +46,71 @@ export default function CreateShipment() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target as HTMLInputElement
-    setFormData(prev => ({
-      ...prev,
-      [id]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }))
+    
+    if (id.includes('.')) {
+      // Handle nested location objects
+      const [parent, child] = id.split('.')
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...(prev[parent as keyof FormData] as LocationInput),
+          [child]: value
+        }
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [id]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Will be implemented with blockchain integration
-    console.log('Form submitted:', formData)
+    if (!address || !write) return
+
+    try {
+      const origin = {
+        latitude: formData.origin.latitude,
+        longitude: formData.origin.longitude,
+        name: formData.origin.name,
+        timestamp: BigInt(new Date(formData.deliveredOn).getTime()),
+        updatedBy: address
+      }
+
+      const destination = {
+        latitude: formData.destination.latitude,
+        longitude: formData.destination.longitude,
+        name: formData.destination.name,
+        timestamp: BigInt(new Date(formData.arrivesOn).getTime()),
+        updatedBy: address
+      }
+
+      await write({
+        args: [
+          formData.productName,
+          formData.description,
+          address,
+          address,
+          address,
+          origin,
+          destination,
+          BigInt(new Date(formData.arrivesOn).getTime()),
+          formData.isTemperatureSensitive,
+          formData.isHumiditySensitive,
+          "0x0000000000000000000000000000000000000000000000000000000000000001"
+        ]
+      })
+    } catch (err) {
+      console.error('Failed to create shipment:', err)
+    }
+  }
+
+  // Redirect to dashboard after successful creation
+  if (isSuccess) {
+    setTimeout(() => {
+      navigate('/dashboard')
+    }, 2000)
   }
 
   if (!address) {
@@ -52,6 +136,18 @@ export default function CreateShipment() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
             Create a new Shipment
           </h1>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded">
+              Error: {error.message}
+            </div>
+          )}
+
+          {isSuccess && (
+            <div className="mb-6 p-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-100 rounded">
+              Shipment created successfully! Redirecting to dashboard...
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -88,38 +184,114 @@ export default function CreateShipment() {
               />
             </div>
 
-            <div>
-              <label htmlFor="shippedFrom" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Shipped From
-              </label>
-              <input 
-                type="text" 
-                id="shippedFrom" 
-                value={formData.shippedFrom}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter shipping origin"
-                required
-              />
+            {/* Origin Location */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Origin Location</h3>
+              <div>
+                <label htmlFor="origin.name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Location Name
+                </label>
+                <input 
+                  type="text" 
+                  id="origin.name" 
+                  value={formData.origin.name}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter location name"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="origin.latitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Latitude
+                  </label>
+                  <input 
+                    type="text" 
+                    id="origin.latitude" 
+                    value={formData.origin.latitude}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., 40.7128"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="origin.longitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Longitude
+                  </label>
+                  <input 
+                    type="text" 
+                    id="origin.longitude" 
+                    value={formData.origin.longitude}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., -74.0060"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="destination" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Destination
-              </label>
-              <input 
-                type="text" 
-                id="destination" 
-                value={formData.destination}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter destination"
-                required
-              />
+            {/* Destination Location */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Destination Location</h3>
+              <div>
+                <label htmlFor="destination.name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Location Name
+                </label>
+                <input 
+                  type="text" 
+                  id="destination.name" 
+                  value={formData.destination.name}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                           bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                           focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter location name"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="destination.latitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Latitude
+                  </label>
+                  <input 
+                    type="text" 
+                    id="destination.latitude" 
+                    value={formData.destination.latitude}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., 34.0522"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="destination.longitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Longitude
+                  </label>
+                  <input 
+                    type="text" 
+                    id="destination.longitude" 
+                    value={formData.destination.longitude}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="e.g., -118.2437"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -187,9 +359,10 @@ export default function CreateShipment() {
             <button 
               type="submit" 
               className="w-full bg-orange-500 text-white p-3 rounded font-bold 
-                       hover:bg-orange-600 transition-colors"
+                       hover:bg-orange-600 transition-colors disabled:bg-gray-400"
+              disabled={isLoading || !write}
             >
-              Create Shipment
+              {isLoading ? 'Creating Shipment...' : 'Create Shipment'}
             </button>
           </form>
         </div>

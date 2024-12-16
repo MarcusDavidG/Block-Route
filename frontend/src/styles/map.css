@@ -1,125 +1,99 @@
-/* Map container styles */
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
 .mapboxgl-map {
   width: 100%;
   height: 100%;
 }
 
-/* Custom marker styles */
-.marker {
-  cursor: pointer;
-}
-
-/* Pulse animation for current location marker */
-.pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: .8;
-    transform: scale(1.1);
-  }
-}
-
-/* Custom popup styles */
 .mapboxgl-popup {
-  max-width: 200px;
+  max-width: 300px;
 }
 
 .mapboxgl-popup-content {
-  padding: 0;
-  border-radius: 0.5rem;
-  background-color: #1f2937; /* dark gray-800 */
-  color: white;
-  border: 1px solid #374151; /* gray-700 */
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-0 rounded-lg shadow-lg border-0;
 }
 
 .mapboxgl-popup-tip {
-  border-top-color: #1f2937 !important;
-  border-bottom-color: #1f2937 !important;
+  @apply border-t-white dark:border-t-gray-800;
 }
 
 .mapboxgl-popup-close-button {
-  color: white;
-  font-size: 16px;
-  padding: 4px 8px;
+  @apply text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2;
 }
 
-.mapboxgl-popup-close-button:hover {
-  background-color: #374151; /* gray-700 */
-  border-top-right-radius: 0.5rem;
-}
-
-/* Route line animation */
-@keyframes dashdraw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Map controls theme */
 .mapboxgl-ctrl-group {
-  background-color: #1f2937 !important;
-  border: 1px solid #374151 !important;
+  @apply !bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700;
 }
 
 .mapboxgl-ctrl button {
-  background-color: #1f2937 !important;
-  color: white !important;
+  @apply !bg-white dark:!bg-gray-800 !text-gray-900 dark:!text-white;
 }
 
 .mapboxgl-ctrl button:hover {
-  background-color: #374151 !important;
+  @apply !bg-gray-100 dark:!bg-gray-700;
 }
 
-.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon,
-.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon,
-.mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
-  filter: invert(1) hue-rotate(180deg);
+.mapboxgl-ctrl button.active {
+  @apply !bg-orange-500 !text-white;
 }
 
-/* Map attribution theme */
 .mapboxgl-ctrl-attrib {
-  background-color: rgba(31, 41, 55, 0.8) !important;
-  color: white !important;
+  @apply !bg-white/75 dark:!bg-gray-800/75 !text-gray-600 dark:!text-gray-400;
 }
 
 .mapboxgl-ctrl-attrib a {
-  color: #f97316 !important; /* orange-500 */
+  @apply !text-orange-500 hover:!text-orange-600;
 }
 
-/* Loading state */
+/* Custom marker styles */
+.marker {
+  transition: transform 0.2s;
+}
+
+.marker:hover {
+  transform: scale(1.2);
+}
+
+/* Custom popup styles */
+.mapboxgl-popup-content h3 {
+  @apply text-lg font-bold mb-1;
+}
+
+.mapboxgl-popup-content p {
+  @apply text-sm;
+}
+
+/* Custom loading overlay */
 .map-loading {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  background-color: rgba(31, 41, 55, 0.9);
-  padding: 1rem 2rem;
-  border-radius: 0.5rem;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @apply absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center;
 }
 
-.map-loading::after {
-  content: '';
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid #f97316;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
+.map-loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* Custom error overlay */
+.map-error {
+  @apply absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center;
+}
+
+.map-error-content {
+  @apply max-w-md mx-auto p-6 bg-red-100 dark:bg-red-900 rounded-lg;
+}
+
+.map-error-message {
+  @apply text-red-700 dark:text-red-100;
+}
+
+/* Custom no-data overlay */
+.map-no-data {
+  @apply absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center;
+}
+
+.map-no-data-content {
+  @apply max-w-md mx-auto p-6 bg-gray-100 dark:bg-gray-800 rounded-lg;
+}
+
+.map-no-data-message {
+  @apply text-gray-700 dark:text-gray-300;
 }
