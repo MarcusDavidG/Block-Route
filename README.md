@@ -2,6 +2,28 @@
 
 BlockRoute is a decentralized application (dApp) built on the Lisk blockchain that enables transparent and efficient supply chain management. It allows users to create, track, and manage shipments with features like quality checks, temperature monitoring, and dispute resolution.
 
+## Repository Structure
+
+The repository contains both the smart contracts and frontend code in a monorepo structure:
+
+```
+Block-Route/
+├── frontend/                # React frontend application
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── config/        # Configuration files
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── pages/         # Page components
+│   │   ├── providers/     # Context providers
+│   │   └── styles/        # CSS and styling files
+│   └── public/            # Static assets
+├── src/                   # Smart contract source files
+│   ├── interfaces/        # Contract interfaces
+│   └── libraries/         # Solidity libraries
+├── script/                # Deployment scripts
+└── test/                  # Contract test files
+```
+
 ## Features
 
 - **Shipment Creation**: Create new shipments with detailed information including:
@@ -102,26 +124,6 @@ BlockRoute is a decentralized application (dApp) built on the Lisk blockchain th
    ```bash
    forge script script/CreateShipment.s.sol --rpc-url https://rpc.sepolia-api.lisk.com --broadcast
    ```
-
-## Project Structure
-
-```
-Block-Route/
-├── frontend/                # React frontend application
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── config/        # Configuration files
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── pages/         # Page components
-│   │   ├── providers/     # Context providers
-│   │   └── styles/        # CSS and styling files
-│   └── public/            # Static assets
-├── src/                   # Smart contract source files
-│   ├── interfaces/        # Contract interfaces
-│   └── libraries/         # Solidity libraries
-├── script/                # Deployment scripts
-└── test/                  # Contract test files
-```
 
 ## Usage
 
